@@ -7,7 +7,7 @@ pkg_description="PowerShell is a cross-platform (Windows, Linux, and macOS) auto
 pkg_maintainer="The Habitat Maintainers <humans@habitat.sh>"
 pkg_source="https://github.com/PowerShell/PowerShell"
 pkg_deps=(
-  core/dotnet-core
+  mwrock/dotnet-core
   core/gcc
   core/glibc
   core/gcc-libs
@@ -24,7 +24,7 @@ pkg_build_deps=(
   core/make
   core/git
 )
-pkg_bin_dirs=(.)
+pkg_bin_dirs=(bin)
 
 do_download() {
   pushd $HAB_CACHE_SRC_PATH
@@ -35,7 +35,6 @@ do_download() {
   # This is why we do not download source
   git clone -b v$pkg_version --recursive "$pkg_source"
   popd
-  return 0
 }
 
 do_unpack() {
@@ -49,14 +48,6 @@ do_verify() {
 do_prepare() {
   cp -r $HAB_CACHE_SRC_PATH/PowerShell/* $HAB_CACHE_SRC_PATH/$pkg_dirname
   rm -rf $HAB_CACHE_SRC_PATH/PowerShell
-
-  # The build expects to find this file to determine
-  # platform so we will fake ubuntu 14.04
-  cat > "/etc/os-release" <<EOF
-NAME="Ubuntu"
-ID="Ubuntu"
-VERSION_ID="14.04"
-EOF
 }
 
 do_build() {
@@ -73,12 +64,12 @@ do_build() {
   dotnet run
 
   cd ../TypeCatalogParser
-  dotnet build
+  dotnet build --runtime ubuntu.14.04-x64
   find -type f -name 'TypeCatalogParser' \
     -exec patchelf --interpreter "$(pkg_path_for glibc)/lib/ld-linux-x86-64.so.2" --set-rpath $LD_RUN_PATH {} \;
   find -type f -name '*.so*' \
     -exec patchelf --set-rpath $LD_RUN_PATH {} \;
-  dotnet run
+  bin/Debug/netcoreapp1.0/ubuntu.14.04-x64/TypeCatalogParser
 
   cd ../TypeCatalogGen
   dotnet build
@@ -104,10 +95,10 @@ do_build() {
 
 do_install() {
   cd src/powershell-unix
-  dotnet publish --configuration Linux --output $pkg_prefix
-  find $pkg_prefix -type f -name 'powershell' \
+  dotnet publish --configuration Linux --output $pkg_prefix/bin
+  find $pkg_prefix/bin -type f -name 'powershell' \
     -exec patchelf --interpreter "$(pkg_path_for glibc)/lib/ld-linux-x86-64.so.2" --set-rpath $LD_RUN_PATH {} \;
-  find $pkg_prefix -type f -name '*.so*' \
+  find $pkg_prefix/bin -type f -name '*.so*' \
     -exec patchelf --set-rpath $LD_RUN_PATH {} \;
 }
 

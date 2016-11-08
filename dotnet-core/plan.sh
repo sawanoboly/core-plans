@@ -25,7 +25,7 @@ pkg_deps=(
 pkg_build_deps=(
   core/patchelf
 )
-pkg_bin_dirs=(.)
+pkg_bin_dirs=(bin)
 
 do_unpack() {
   # Extract into $pkg_dirname instead of straight into $HAB_CACHE_SRC_PATH.
@@ -45,11 +45,15 @@ do_build() {
 }
 
 do_install() {
-  cp -a . "$pkg_prefix"
+  cp -a . "$pkg_prefix/bin"
 }
 
 do_check() {
-  ./dotnet --version
+  mkdir dotnet-new
+  pushd dotnet-new
+  ../dotnet new
+  popd
+  rm -rf dotnet-new
 }
 
 do_strip() {
